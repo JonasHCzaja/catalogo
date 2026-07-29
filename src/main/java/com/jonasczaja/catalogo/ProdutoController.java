@@ -1,5 +1,6 @@
 package com.jonasczaja.catalogo;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,8 +27,10 @@ public class ProdutoController {
     }
 
     @GetMapping("/{id}")
-    public Optional<Produto> listarPorId(@PathVariable Long id){
-        return Optional.ofNullable(repository.findById(id).orElse(null));
+    public ResponseEntity<Produto> buscarPorId(@PathVariable Long id){
+        return repository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
 
