@@ -1,0 +1,5 @@
+### Atualizar produto inexistente
+PUT http://localhost:8080/produtos/999
+Content-Type: application/json
+
+{"nome": "Fantasma", "preco": 10.00}

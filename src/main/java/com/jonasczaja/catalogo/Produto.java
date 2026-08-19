@@ -16,6 +16,7 @@ public class Produto {
 
     private String nome;
     private BigDecimal preco;
+    private BigDecimal custoInterno;
 
     public Produto() {}
 
@@ -46,6 +47,12 @@ public class Produto {
 
     public void setPreco(BigDecimal preco){
         this.preco = preco;
+    }
+
+    public BigDecimal getCustoInterno(){return custoInterno;}
+
+    public void setCustoInterno(BigDecimal custoInterno){
+        this.custoInterno = custoInterno;
     }
 
 }
