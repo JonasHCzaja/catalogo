@@ -1,5 +1,6 @@
 package com.jonasczaja.catalogo;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class ProdutoController {
     }
 
     @PostMapping
-    public ResponseEntity<ProdutoResponse> criar(@RequestBody ProdutoRequest request){
+    public ResponseEntity<ProdutoResponse> criar(@Valid @RequestBody ProdutoRequest request){
         Produto salvo = service.criar(request.nome(), request.preco());
         return ResponseEntity.status(HttpStatus.CREATED).body(ProdutoResponse.from(salvo));
     }
@@ -40,7 +41,8 @@ public class ProdutoController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProdutoResponse> atualizar(@PathVariable Long id, @RequestBody ProdutoRequest request){
+    public ResponseEntity<ProdutoResponse> atualizar(@PathVariable Long id,
+                                                     @Valid @RequestBody ProdutoRequest request){
 
         Produto atualizado = service.atualizar(id, request.nome(), request.preco());
 
