@@ -3,6 +3,7 @@ package com.jonasczaja.catalogo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -12,6 +13,8 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @WebMvcTest(ProdutoController.class)
@@ -66,5 +69,21 @@ public class ProdutoControllerTest {
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.campos").asMap()
                 .containsKeys("nome", "preco");
+    }
+
+
+    @Test
+    void deveDevolver201ComLocationHeader(){
+        Produto cafe = new Produto();
+        cafe.setId(1L);
+        when(service.criar(anyString(), any(BigDecimal.class))).thenReturn(cafe);
+
+        assertThat(mvc.post().uri("/produtos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"nome": "Café", "preco": 35.90}
+                    """).exchange())
+                .hasStatus(HttpStatus.CREATED)
+                .hasHeader(HttpHeaders.LOCATION, "http://localhost/produtos/1");
     }
 }
