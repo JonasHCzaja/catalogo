@@ -1,5 +1,7 @@
 package com.jonasczaja.catalogo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class TratadorDeErros {
+
+    private static final Logger log = LoggerFactory.getLogger(TratadorDeErros.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail tratarValidacao(MethodArgumentNotValidException exception){

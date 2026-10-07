@@ -71,7 +71,6 @@ public class ProdutoControllerTest {
                 .containsKeys("nome", "preco");
     }
 
-
     @Test
     void deveDevolver201ComLocationHeader(){
         Produto cafe = new Produto();
@@ -85,5 +84,14 @@ public class ProdutoControllerTest {
                     """).exchange())
                 .hasStatus(HttpStatus.CREATED)
                 .hasHeader(HttpHeaders.LOCATION, "http://localhost/produtos/1");
+    }
+
+    @Test
+    void deveDevolver500QuandoOcorreErroInesperado(){
+        when(service.listarTodos()).thenThrow(new RuntimeException("falha simulada"));
+
+        assertThat(mvc.get().uri("/produtos"))
+                .hasStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .bodyJson().extractingPath("$.detail").isEqualTo("Ocorreu um erro inesperado.");
     }
 }
