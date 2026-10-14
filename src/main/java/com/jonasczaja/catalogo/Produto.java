@@ -1,21 +1,24 @@
 package com.jonasczaja.catalogo;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 
 @Entity
+@Table(uniqueConstraints =
+        @UniqueConstraint(name = "uk_produto_nome", columnNames = "nome"))
 public class Produto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, length = 100)
     private String nome;
+
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal preco;
+
     private BigDecimal custoInterno;
 
     public Produto() {}

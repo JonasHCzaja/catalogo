@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -49,6 +50,14 @@ public class TratadorDeErros {
         ProblemDetail problema = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
         problema.setTitle("Recurso não encontrado");
         problema.setDetail(exception.getMessage());
+        return problema;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail tratarConflito(DataIntegrityViolationException ex) {
+        ProblemDetail problema = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problema.setTitle("Conflito");
+        problema.setDetail("O recurso já existe.");
         return problema;
     }
 }

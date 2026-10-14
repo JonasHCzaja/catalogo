@@ -3,6 +3,7 @@ package com.jonasczaja.catalogo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -93,5 +94,19 @@ public class ProdutoControllerTest {
         assertThat(mvc.get().uri("/produtos"))
                 .hasStatus(HttpStatus.INTERNAL_SERVER_ERROR)
                 .bodyJson().extractingPath("$.detail").isEqualTo("Ocorreu um erro inesperado.");
+    }
+
+    @Test
+    void deveDevolver409QuandoNomeJaExisteNoBanco() {
+        when(service.criar(anyString(), any(BigDecimal.class)))
+                .thenThrow(new DataIntegrityViolationException("uk_produto_nome"));
+
+        assertThat(mvc.post().uri("/produtos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"nome": "Café", "preco": 24.90}
+                    """))
+                .hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.detail").isEqualTo("O recurso já existe.");
     }
 }

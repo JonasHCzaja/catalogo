@@ -19,6 +19,8 @@ git clone https://github.com/JonasHCzaja/catalogo.git
 cd catalogo
 ./mvnw spring-boot:run
 ```
+> Se o Docker não estiver em execução, a aplicação falha ao iniciar com erro
+> de conexão ao Postgres. Verifique com `docker ps`.
 
 Não é preciso instalar nem configurar o Postgres. O Spring Boot lê o `compose.yaml`
 da raiz, sobe o container ao iniciar a aplicação e o derruba ao parar. A primeira
