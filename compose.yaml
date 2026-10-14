@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:17'
+    environment:
+      - 'POSTGRES_USER=catalogo'
+      - 'POSTGRES_PASSWORD=catalogo'
+      - 'POSTGRES_DB=catalogo'
+    ports:
+      - '5432:5432'
