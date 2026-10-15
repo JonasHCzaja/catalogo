@@ -1,4 +1,5 @@
 # Catálogo de Produtos
+![CI](https://github.com/JonasHCzaja/catalogo/actions/workflows/ci.yml/badge.svg)
 
 API REST para cadastro e consulta de produtos, com validação de entrada, respostas de erro
 padronizadas e cobertura de testes nos três níveis da pirâmide.
