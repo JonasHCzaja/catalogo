@@ -47,8 +47,9 @@ credencial em arquivo versionado seria falha de segurança.
 |---|---|---|---|
 | `GET` | `/produtos` | Lista todos os produtos | 200 |
 | `GET` | `/produtos/{id}` | Busca um produto por id | 200, 404 |
-| `POST` | `/produtos` | Cria um produto | 201 + `Location`, 400 |
-| `PUT` | `/produtos/{id}` | Atualiza nome e preço | 200, 400, 404 |
+| `POST` | `/produtos` | Cria um produto | 201 + `Location`, 400, 409 |
+| `PUT` | `/produtos/{id}` | Atualiza nome e preço | 200, 400, 404, 409 |
+| `DELETE` | `/produtos/{id}` | Remove um produto | 204, 404 |
 
 ### Exemplo
 

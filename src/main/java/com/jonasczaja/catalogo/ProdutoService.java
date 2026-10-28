@@ -55,4 +55,11 @@ public class ProdutoService {
         return repository.save(produto);
     }
 
+
+    public void deletar(Long id){
+        if(!repository.existsById(id)){
+            throw new ProdutoNaoEncontradoException("Produto com id " + id + " não encontrado");
+        }
+        repository.deleteById(id);
+    }
 }

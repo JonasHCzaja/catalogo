@@ -16,7 +16,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @WebMvcTest(ProdutoController.class)
 public class ProdutoControllerTest {
@@ -28,7 +28,7 @@ public class ProdutoControllerTest {
     ProdutoService service;
 
     @Test
-    void deveDevolver200ComOProdutoEncontrado(){
+    void deveDevolver200ComOProdutoEncontrado() {
         Produto cafe = new Produto("Café", new BigDecimal("24.90"));
         cafe.setId(1L);
         when(service.buscarPorId(1L)).thenReturn(Optional.of(cafe));
@@ -39,7 +39,7 @@ public class ProdutoControllerTest {
     }
 
     @Test
-    void naoDeveVazarCustoInterno(){
+    void naoDeveVazarCustoInterno() {
         Produto cafe = new Produto("Café", new BigDecimal("24.90"));
         cafe.setId(1L);
         cafe.setCustoInterno(new BigDecimal("15.00"));
@@ -53,7 +53,7 @@ public class ProdutoControllerTest {
     }
 
     @Test
-    void deveDevolver404QuandoProdutoNaoExiste(){
+    void deveDevolver404QuandoProdutoNaoExiste() {
         when(service.buscarPorId(999L)).thenReturn(Optional.empty());
 
         assertThat(mvc.get().uri("/produtos/{id}", 999))
@@ -65,15 +65,15 @@ public class ProdutoControllerTest {
         assertThat(mvc.post().uri("/produtos")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"nome": "", "preco": -5}
-                    """))
+                        {"nome": "", "preco": -5}
+                        """))
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.campos").asMap()
                 .containsKeys("nome", "preco");
     }
 
     @Test
-    void deveDevolver201ComLocationHeader(){
+    void deveDevolver201ComLocationHeader() {
         Produto cafe = new Produto();
         cafe.setId(1L);
         when(service.criar(anyString(), any(BigDecimal.class))).thenReturn(cafe);
@@ -81,14 +81,14 @@ public class ProdutoControllerTest {
         assertThat(mvc.post().uri("/produtos")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"nome": "Café", "preco": 35.90}
-                    """).exchange())
+                        {"nome": "Café", "preco": 35.90}
+                        """).exchange())
                 .hasStatus(HttpStatus.CREATED)
                 .hasHeader(HttpHeaders.LOCATION, "http://localhost/produtos/1");
     }
 
     @Test
-    void deveDevolver500QuandoOcorreErroInesperado(){
+    void deveDevolver500QuandoOcorreErroInesperado() {
         when(service.listarTodos()).thenThrow(new RuntimeException("falha simulada"));
 
         assertThat(mvc.get().uri("/produtos"))
@@ -104,9 +104,26 @@ public class ProdutoControllerTest {
         assertThat(mvc.post().uri("/produtos")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"nome": "Café", "preco": 24.90}
-                    """))
+                        {"nome": "Café", "preco": 24.90}
+                        """))
                 .hasStatus(HttpStatus.CONFLICT)
                 .bodyJson().extractingPath("$.detail").isEqualTo("O recurso já existe.");
+    }
+
+    @Test
+    void deveDevolver204QuandoProdutoEDeletado() {
+        assertThat(mvc.delete().uri("/produtos/{id}", 1))
+                .hasStatus(HttpStatus.NO_CONTENT);
+
+        verify(service).deletar(1L);
+    }
+
+    @Test
+    void deveDevolver404QuandoProdutoASerDeletadoNaoExiste(){
+        doThrow(new ProdutoNaoEncontradoException("não encontrado"))
+                .when(service).deletar(999L);
+
+        assertThat(mvc.delete().uri("/produtos/{id}", 999))
+                .hasStatus(HttpStatus.NOT_FOUND);
     }
 }

@@ -113,4 +113,23 @@ public class ProdutoServiceTest {
         // ASSERT
         verify(repository, never()).save(any());
     }
+
+    @Test
+    void naoDeveDeletarQuandoProdutoNaoExiste(){
+        when(repository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.deletar(999L))
+                .isInstanceOf(ProdutoNaoEncontradoException.class);
+
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void deveDeletarProdutoExistente(){
+        when(repository.existsById(1L)).thenReturn(true);
+
+        service.deletar(1L);
+
+        verify(repository).deleteById(1L);
+    }
 }
