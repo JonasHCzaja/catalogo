@@ -5,6 +5,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -131,5 +135,26 @@ public class ProdutoServiceTest {
         service.deletar(1L);
 
         verify(repository).deleteById(1L);
+    }
+
+    @Test
+    void devePermitirOrdenacaoPorCampoPermitido(){
+        Pageable comCampoValido = PageRequest.of(0, 20, Sort.by("preco"));
+        when(repository.findAll(comCampoValido)).thenReturn(Page.empty());
+
+        service.listarTodos(comCampoValido);
+
+        verify(repository).findAll(comCampoValido);
+    }
+
+    @Test
+    void deveRecusarOrdenacaoPorCampoNaoPermitido(){
+        Pageable comCampoProibido = PageRequest.of(0, 20, Sort.by("custoInterno"));
+
+        assertThatThrownBy(() -> service.listarTodos(comCampoProibido))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Ordenação permitida");
+
+        verify(repository, never()).findAll(any(Pageable.class));
     }
 }

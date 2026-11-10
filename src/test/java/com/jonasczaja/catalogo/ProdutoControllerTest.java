@@ -4,13 +4,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,8 +92,23 @@ public class ProdutoControllerTest {
     }
 
     @Test
+    void deveDevolverPaginaDeProdutos(){
+        Produto cafe = new Produto("Café", new BigDecimal("24.90"));
+        cafe.setId(1L);
+        when(service.listarTodos(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(cafe)));
+
+        MvcTestResult resultado = mvc.get().uri("/produtos").exchange();
+
+        assertThat(resultado).hasStatusOk();
+        assertThat(resultado).bodyJson()
+                .extractingPath("$.content[0].nome").isEqualTo("Café");
+        assertThat(resultado).bodyJson()
+                .extractingPath("$.page.totalElements").isEqualTo(1);
+    }
+
+    @Test
     void deveDevolver500QuandoOcorreErroInesperado() {
-        when(service.listarTodos()).thenThrow(new RuntimeException("falha simulada"));
+        when(service.listarTodos(any(Pageable.class))).thenThrow(new RuntimeException("falha simulada"));
 
         assertThat(mvc.get().uri("/produtos"))
                 .hasStatus(HttpStatus.INTERNAL_SERVER_ERROR)

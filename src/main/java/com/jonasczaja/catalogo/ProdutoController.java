@@ -1,6 +1,9 @@
 package com.jonasczaja.catalogo;
 
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,10 +24,10 @@ public class ProdutoController {
     }
 
     @GetMapping
-    public List<ProdutoResponse> listar() {
-        return service.listarTodos().stream()
-                .map(ProdutoResponse::from)
-                .toList();
+    public PagedModel<ProdutoResponse> listar(Pageable pageable) {
+        Page<ProdutoResponse> pagina = service.listarTodos(pageable)
+                .map(ProdutoResponse::from);
+        return new PagedModel<>(pagina);
     }
 
     @PostMapping
