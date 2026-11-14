@@ -53,7 +53,7 @@ public class ProdutoService {
         Optional<Produto> encontrado = repository.findById(id);
 
         if(encontrado.isEmpty()){
-            throw new ProdutoNaoEncontradoException("Produto com id " + id + " nao encontrado");
+            throw new ProdutoNaoEncontradoException("Produto com id " + id + " não encontrado");
         }
         if(preco == null || preco.compareTo(BigDecimal.ZERO) <= 0){
             throw new RegraDeNegocioException("Preço deve ser maior que zero");

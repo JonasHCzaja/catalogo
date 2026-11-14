@@ -145,4 +145,50 @@ public class ProdutoControllerTest {
         assertThat(mvc.delete().uri("/produtos/{id}", 999))
                 .hasStatus(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    void deveDevolver200ComOProdutoAtualizado(){
+        Produto atualizado = new Produto("Café", new BigDecimal("24.90"));
+        atualizado.setId(1L);
+
+        when(service.atualizar(eq(1L), eq("Café"), any(BigDecimal.class)))
+                .thenReturn(atualizado);
+
+        assertThat(mvc.put().uri("/produtos/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"nome":"Café","preco":24.90}
+                        """))
+                .hasStatusOk()
+                .bodyJson().extractingPath("$.nome").isEqualTo("Café");
+    }
+
+
+    @Test
+    void deveDevolver404QuandoProdutoASerAtualizadoNaoExiste(){
+        when(service.atualizar(eq(99L), eq("Café"), any(BigDecimal.class)))
+                .thenThrow(new ProdutoNaoEncontradoException("Produto com id 99 não encontrado"));
+
+        assertThat(mvc.put().uri("/produtos/{id}", 99)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"nome":"Café","preco":24.90}
+                        """))
+                .hasStatus(HttpStatus.NOT_FOUND)
+                .bodyJson().extractingPath("$.detail").isEqualTo("Produto com id 99 não encontrado");
+    }
+
+    @Test
+    void deveDevolver400QuandoONovoNomePertenceAOutroProduto(){
+        when(service.atualizar(eq(2L), eq("Café"), any(BigDecimal.class)))
+                .thenThrow(new RegraDeNegocioException("Já existe produto com o nome Café"));
+
+        assertThat(mvc.put().uri("/produtos/{id}", 2)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"nome":"Café","preco":24.90}
+                        """))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.detail").isEqualTo("Já existe produto com o nome Café");
+    }
 }
