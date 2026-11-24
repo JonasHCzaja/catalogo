@@ -1,6 +1,8 @@
 package com.jonasczaja.catalogo;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.junit.jupiter.api.Test;
@@ -47,4 +49,14 @@ class ProdutoEndToEndTest {
 				.expectStatus().isCreated();
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"/produtos?sort=custoInterno,desc",
+			"/produtos?nome=a&sort=custoInterno,desc"
+	})
+	void deveRecusarOrdenacaoPorCampoNaoPermitidoEmTodasAsRotas(String uri) {
+		client.get().uri(uri)
+				.exchange()
+				.expectStatus().isBadRequest();
+	}
 }

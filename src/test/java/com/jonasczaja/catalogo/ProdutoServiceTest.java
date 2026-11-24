@@ -147,14 +147,4 @@ public class ProdutoServiceTest {
         verify(repository).findAll(comCampoValido);
     }
 
-    @Test
-    void deveRecusarOrdenacaoPorCampoNaoPermitido(){
-        Pageable comCampoProibido = PageRequest.of(0, 20, Sort.by("custoInterno"));
-
-        assertThatThrownBy(() -> service.listarTodos(comCampoProibido))
-                .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("Ordenação permitida");
-
-        verify(repository, never()).findAll(any(Pageable.class));
-    }
 }

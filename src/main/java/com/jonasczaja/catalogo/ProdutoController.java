@@ -4,14 +4,11 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/produtos")
@@ -24,7 +21,8 @@ public class ProdutoController {
     }
 
     @GetMapping
-    public PagedModel<ProdutoResponse> listar(Pageable pageable) {
+    public PagedModel<ProdutoResponse> listar(
+            @OrdenacaoPermitida({"id", "nome", "preco"}) Pageable pageable) {
         Page<ProdutoResponse> pagina = service.listarTodos(pageable)
                 .map(ProdutoResponse::from);
         return new PagedModel<>(pagina);
@@ -65,5 +63,14 @@ public class ProdutoController {
     public ResponseEntity<Void> deletar(@PathVariable Long id){
         service.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(params = "nome")
+    public PagedModel<ProdutoResponse> buscarPorNome(
+            @RequestParam String nome,
+            @OrdenacaoPermitida({"id", "nome", "preco"}) Pageable pageable){
+        Page<ProdutoResponse> pagina = service.buscarPorNome(nome, pageable)
+                .map(ProdutoResponse::from);
+        return new PagedModel<>(pagina);
     }
 }

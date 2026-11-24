@@ -1,12 +1,10 @@
 package com.jonasczaja.catalogo;
 
-import org.hibernate.type.OrderedMapType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -14,23 +12,12 @@ public class ProdutoService {
 
     private final ProdutoRepository repository;
 
-    private static final List<String> ORDENAVEIS = List.of("id", "nome", "preco");
 
     public ProdutoService(ProdutoRepository repository){
         this.repository = repository;
     }
 
-    private void validarOrdenacao(Pageable pageable) {
-        pageable.getSort().forEach(ordem -> {
-            if (!ORDENAVEIS.contains(ordem.getProperty())) {
-                throw new RegraDeNegocioException(
-                        "Ordenação permitida apenas por: " + String.join(", ", ORDENAVEIS));
-            }
-        });
-    }
-
     public Page<Produto> listarTodos(Pageable pageable){
-        validarOrdenacao(pageable);
         return repository.findAll(pageable);
     }
 
@@ -75,5 +62,9 @@ public class ProdutoService {
             throw new ProdutoNaoEncontradoException("Produto com id " + id + " não encontrado");
         }
         repository.deleteById(id);
+    }
+
+    public Page<Produto> buscarPorNome(String nome, Pageable pageable){
+        return repository.findByNomeContainingIgnoreCase(nome, pageable);
     }
 }

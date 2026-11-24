@@ -1,6 +1,8 @@
 package com.jonasczaja.catalogo;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -190,5 +192,22 @@ public class ProdutoControllerTest {
                         """))
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.detail").isEqualTo("Já existe produto com o nome Café");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/produtos?sort=custoInterno,desc",
+            "/produtos?nome=a&sort=custoInterno,desc"})
+    void deveRecusarOrdenacaoPorCampoNaoPermitidoEmTodasAsRotas(String uri){
+        assertThat(mvc.get().uri(uri))
+                .hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void deveInformarOsCamposPermitidosAoRecusarOrdenacao(){
+        assertThat(mvc.get().uri("/produtos?sort=custoInterno,desc"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.detail")
+                .asString().contains("id", "nome", "preco").doesNotContain("custoInterno");
     }
 }

@@ -2,6 +2,7 @@ package com.jonasczaja.catalogo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -54,10 +56,22 @@ public class TratadorDeErros {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail tratarConflito(DataIntegrityViolationException ex) {
+    public ProblemDetail tratarConflito(DataIntegrityViolationException exception){
         ProblemDetail problema = ProblemDetail.forStatus(HttpStatus.CONFLICT);
         problema.setTitle("Conflito");
         problema.setDetail("O recurso já existe.");
+        return problema;
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ProblemDetail tratarValidacaoDeParametro(HandlerMethodValidationException exception){
+        String mensagens = exception.getAllErrors().stream()
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .collect(Collectors.joining("; "));
+
+        ProblemDetail problema = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problema.setTitle("Parâmetro inválido");
+        problema.setDetail(mensagens);
         return problema;
     }
 }
