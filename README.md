@@ -1,16 +1,17 @@
 # Catálogo de Produtos
 ![CI](https://github.com/JonasHCzaja/catalogo/actions/workflows/ci.yml/badge.svg)
 
-API REST para cadastro e consulta de produtos, com validação de entrada, respostas de erro
-padronizadas, schema versionado e cobertura de testes nos quatro níveis da pirâmide.
+API REST para cadastro, busca e consulta de produtos, com validação de entrada em duas camadas,
+respostas de erro padronizadas, schema versionado e cobertura de testes nos quatro níveis da
+pirâmide.
 
 ## Stack
 
 - Java 25 · Spring Boot 4.1 · Maven
 - PostgreSQL 17 em container, gerenciado pelo Docker Compose
 - Spring Data JPA / Hibernate · Flyway para migração de schema
+- Bean Validation (Hibernate Validator), com uma constraint própria
 - JUnit 6 · Mockito · AssertJ · Testcontainers
-
 ## Como rodar
 
 **Pré-requisito:** Docker em execução.
@@ -51,6 +52,7 @@ credencial em arquivo versionado seria falha de segurança.
 | Método | Caminho | Descrição | Respostas |
 |---|---|---|---|
 | `GET` | `/produtos` | Lista paginada de produtos | 200, 400 |
+| `GET` | `/produtos?nome=` | Busca paginada por nome | 200, 400 |
 | `GET` | `/produtos/{id}` | Busca um produto por id | 200, 404 |
 | `POST` | `/produtos` | Cria um produto | 201 + `Location`, 400, 409 |
 | `PUT` | `/produtos/{id}` | Atualiza nome e preço | 200, 400, 404, 409 |
@@ -58,7 +60,7 @@ credencial em arquivo versionado seria falha de segurança.
 
 ### Paginação e ordenação
 
-`GET /produtos` aceita os parâmetros padrão do Spring Data:
+As duas rotas de listagem aceitam os parâmetros padrão do Spring Data:
 
 | Parâmetro | Significa | Padrão |
 |---|---|---|
@@ -80,6 +82,24 @@ curl -s "localhost:8080/produtos?page=0&size=5&sort=preco,desc"
 Ordenação por um campo fora da lista permitida devolve **400** com a relação dos campos
 aceitos. O motivo está nas decisões técnicas.
 
+### Busca por nome
+
+```bash
+curl -s "localhost:8080/produtos?nome=caf&sort=nome,asc"
+```
+
+A busca é parcial e ignora a diferença entre maiúscula e minúscula: `caf` encontra `Café`.
+O resultado é paginado e ordenável como a listagem completa, e uma busca sem resultado
+devolve **200** com `content` vazio — não 404. A rota existe e respondeu; o conjunto que
+ela descreve é que está vazio.
+
+**Limitação conhecida:** a comparação ignora caixa, mas **não ignora acento**. Buscar `cafe`
+não encontra `Café`, porque `IgnoreCase` do Spring Data gera `upper(nome) like upper(?)` e
+nenhum `upper()` aproxima `É` de `E`. Resolver isso exigiria a extensão `unaccent` do
+PostgreSQL com índice funcional, ou uma coluna normalizada mantida em paralelo. Para o
+escopo desta API o custo não se justifica, e a limitação está documentada em vez de
+silenciosa.
+
 ### Exemplo de criação
 
 ```bash
@@ -92,15 +112,17 @@ curl -i -X POST localhost:8080/produtos \
 HTTP/1.1 201
 Location: http://localhost:8080/produtos/1
 Content-Type: application/json
-
+ 
 {"id":1,"nome":"Café","preco":24.90}
 ```
 
 ### Erros
 
 As respostas de erro seguem a [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html),
-com `Content-Type: application/problem+json`. Erros de validação incluem um campo `campos`
-com a mensagem de cada campo recusado:
+com `Content-Type: application/problem+json`.
+
+Erros de validação **do corpo** incluem um campo `campos` com a mensagem de cada campo
+recusado:
 
 ```json
 {
@@ -115,6 +137,20 @@ com a mensagem de cada campo recusado:
   }
 }
 ```
+
+Erros de validação **de parâmetro de consulta** trazem a mensagem única em `detail`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Parâmetro inválido",
+  "status": 400,
+  "detail": "Ordenação permitida apenas por: id, nome, preco",
+  "instance": "/produtos"
+}
+```
+
+A diferença de forma é deliberada, e está nas decisões técnicas.
 
 ## Decisões técnicas
 
@@ -131,6 +167,39 @@ sensível adicionado amanhã não é ordenável até alguém decidir que é. A m
 os campos aceitos em vez de ecoar o recusado, para não permitir enumerar colunas por tentativa.
 
 O custo é manter a lista a cada campo novo que deva ser ordenável.
+
+**A lista de campos ordenáveis é declarada no endpoint, como constraint de Bean Validation.**
+
+A primeira versão dessa validação morava no service — que passava então a validar um parâmetro
+de query string, apesar de, no resto desta arquitetura, não conhecer HTTP. O erro de lugar
+apareceu de três formas distintas: a exceção lançada era `RegraDeNegocioException`, que descreve
+regra de negócio e não entrada malformada; o `@WebMvcTest` não conseguia exercitar a validação,
+porque ali o service é dublê e o código real nunca executava; e, ao acrescentar a busca por nome,
+a rota nova simplesmente não passou pela validação — a defesa foi contornada em três linhas, duas
+semanas depois de ter sido escrita.
+
+Escolhi uma constraint própria, `@OrdenacaoPermitida({"id","nome","preco"})`, em vez de uma
+chamada de validação na primeira linha de cada endpoint, porque a anotação fica na assinatura,
+ao lado do `Pageable` que ela governa: uma rota paginada sem a anotação é visível onde se lê a
+rota, em vez de ser a ausência de uma chamada no meio de um método.
+
+O custo é duas classes a mais, e o fato de que a anotação torna o esquecimento **visível**, não
+impossível. Garantia em tempo de compilação exigiria um tipo próprio no lugar de `Pageable`, o
+que é desproporcional para uma API deste tamanho.
+
+**Mensagem única em `detail` para validação de parâmetro, e mapa por campo para o corpo.**
+
+Validação de corpo pode recusar vários campos por motivos diferentes na mesma requisição, e o
+cliente precisa saber qual mensagem pertence a qual campo — daí o mapa `campos`. Já a recusa de
+ordenação devolve sempre a mesma informação, a relação de campos aceitos, independentemente do
+que foi enviado. Um mapa ali acrescentaria um nível de aninhamento e nenhuma informação.
+
+Sem o tratamento próprio, o Spring responde `"detail": "Validation failure"`: ele não promove a
+mensagem da violação porque um método pode ter várias constraints falhando ao mesmo tempo e não
+há como escolher uma. Correto como padrão, inútil para o cliente.
+
+O custo é ter duas formas de corpo de erro para erros de validação, o que precisa estar
+documentado — está na seção de erros acima.
 
 **`existsByNomeAndIdNot` em vez de `existsByNome` na checagem de nome duplicado.**
 
@@ -186,7 +255,7 @@ Quatro níveis, com responsabilidades distintas e sem sobreposição:
 |---|---|---|
 | `ProdutoServiceTest` | a regra de negócio decide certo | JUnit + Mockito |
 | `ProdutoRepositoryTest` | a consulta ao banco pergunta certo | `@DataJpaTest` + Testcontainers |
-| `ProdutoControllerTest` | o contrato HTTP e o JSON estão certos | `@WebMvcTest` |
+| `ProdutoControllerTest` | o contrato HTTP, o JSON e a validação de entrada estão certos | `@WebMvcTest` |
 | `ProdutoEndToEndTest` | a cadeia completa funciona junta | `@SpringBootTest` + Testcontainers |
 
 Os testes de regra rodam em milissegundos, sem subir Spring nem banco. Os dois que usam
@@ -194,13 +263,19 @@ Testcontainers sobem um Postgres real — a mesma imagem do `compose.yaml` — e
 migrações do Flyway são aplicadas do zero a cada execução, o que faz a CI validar o schema
 em cada push.
 
-Dois testes merecem nota:
+Três testes merecem nota, e os três têm a mesma função: **cada um protege uma decisão descrita
+acima de desaparecer numa refatoração.**
 
 - **`naoDeveVazarCustoInterno`** garante que um campo interno da entidade não aparece na resposta
-  da API. A entidade tem campos que o contrato não expõe, e essa separação passa a ser verificada
-  automaticamente em vez de depender de inspeção manual.
-- **`deveRecusarOrdenacaoPorCampoNaoPermitido`** protege a defesa descrita nas decisões técnicas.
-  É o tipo de verificação que alguém remove sem perceber ao refatorar, reabrindo o vazamento.
-
-`custoInterno` é um campo interno, usado para margem, e não é exposto pela API em nenhuma rota
-nem aceito como critério de ordenação.
+  da API. A separação entre entidade e contrato passa a ser verificada automaticamente em vez de
+  depender de inspeção manual.
+- **`deveInformarOsCamposPermitidosAoRecusarOrdenacao`** afirma que a mensagem de erro lista os
+  campos aceitos **e** não contém o campo recusado. A negação sozinha não bastaria: um corpo
+  vazio também não conteria o campo.
+- **`deveRecusarOrdenacaoPorCampoNaoPermitidoEmTodasAsRotas`**, paramétrico sobre as rotas
+  paginadas, afirma que a validação existe em **cada** rota — não que ela funciona, o que é
+  verificado em outro nível. Foi escrito depois de a validação ter sido efetivamente contornada
+  por uma rota nova.
+  `custoInterno` é um campo interno, usado para margem, e não é exposto pela API em nenhuma rota
+  nem aceito como critério de ordenação.
+ 
